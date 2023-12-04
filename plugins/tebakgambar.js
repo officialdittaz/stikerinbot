@@ -1,33 +1,33 @@
-const fetch = require('node-fetch')
+let fetch = require('node-fetch')
 let timeout = 120000
 let poin = 500
+
 let handler = async (m, { conn, usedPrefix }) => {
   conn.tebakgambar = conn.tebakgambar ? conn.tebakgambar : {}
   let id = m.chat
-  if (id in conn.tebakgambar) {
-    conn.reply(m.chat, 'Masih ada soal belum terjawab di chat ini', conn.tebakgambar[id][0])
-    throw false
-  }
-  let src = await (await fetch('https://raw.githubusercontent.com/BochilTeam/database/master/games/tebakgambar.json')).json()
-  let json = src[Math.floor(Math.random() * src.length)]
+  if (id in conn.tebakgambar) return conn.reply(m.chat, 'Belum dijawab!', conn.tebakgambar[id][0])
+  let res = await fetch(API('amel', '/tebakgambar', {}, 'apikey'))
+  if (!res.ok) throw eror
+  let json = await res.json()
+  if (!json.status) throw json
   let caption = `
-  ${json.deskripsi}
-Timeout *${(timeout / 1000).toFixed(2)} detik*
+${json.deskripsi}
+Waktu *${(timeout / 1000).toFixed(2)} detik*
 Ketik ${usedPrefix}hint untuk bantuan
-Bonus: ${poin} XP
-    `.trim()
+`.trim()
   conn.tebakgambar[id] = [
-    await conn.sendButtonImg(m.chat, await (await fetch(json.img)).buffer(), caption, '© stikerin', 'Bantuan', '.hint', m)
-    ,
+    await conn.sendButtonImg(m.chat, json.img, caption, '© stikerin', 'Bantuan', '.hint', m),
     json, poin,
-    setTimeout(async () => {
-      if (conn.tebakgambar[id]) await conn.sendButton(m.chat, `Waktu habis!\nJawabannya adalah *${json.jawaban}*`, '© stikerin', 'Tebak Gambar', '.tebakgambar', conn.tebakgambar[id][0])
+    setTimeout(() => {
+      if (conn.tebakgambar[id]) conn.sendButton(m.chat, `Waktu habis!\nJawabannya adalah *${json.jawaban}*`, '© stikerin', 'Tebak Gambar', '.tebakgambar', conn.tebakgambar[id][0])
       delete conn.tebakgambar[id]
     }, timeout)
   ]
 }
 handler.help = ['tebakgambar']
 handler.tags = ['game']
-handler.command = /^tebakgambar/i
+handler.command = /^tebakgambar$/i
+
+handler.game = true
 
 module.exports = handler
